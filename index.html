@@ -3,39 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Abridor de Processos | Acesso</title>
+<meta name="theme-color" content="#c8102e">
+<title>Abridor de Processos | Costalog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--red:#c8102e;--red2:#a50d25;--ink:#171717;--muted:#747474;--line:#e8e8e8;--bg:#f4f5f7}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--ink);display:grid;place-items:center;padding:24px}
-.shell{width:min(1040px,100%);min-height:620px;background:#fff;border-radius:24px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;box-shadow:0 25px 70px rgba(0,0,0,.12)}
-.brand{position:relative;overflow:hidden;background:linear-gradient(145deg,#d71939,#b20f2c 58%,#860b22);color:#fff;padding:58px;display:flex;flex-direction:column;justify-content:space-between}.brand:before,.brand:after{content:"";position:absolute;border:1px solid rgba(255,255,255,.14);border-radius:50%}.brand:before{width:450px;height:450px;right:-260px;top:-130px}.brand:after{width:560px;height:560px;left:-410px;bottom:-300px}.content,.footer{position:relative;z-index:1}.logo{width:62px;height:62px;border:2px solid rgba(255,255,255,.9);border-radius:16px;display:grid;place-items:center;font-size:25px;font-weight:800;margin-bottom:30px}.eyebrow{font-size:12px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;opacity:.8}.brand h1{font-size:42px;line-height:1.04;letter-spacing:-.045em;margin:12px 0 18px}.brand p{max-width:390px;color:rgba(255,255,255,.84);line-height:1.65;margin:0}.footer{font-size:12px;color:rgba(255,255,255,.68)}
-.form-side{padding:58px clamp(32px,6vw,72px);display:flex;align-items:center}.form{width:100%;max-width:390px;margin:auto}.form h2{font-size:30px;letter-spacing:-.035em;margin:0 0 8px}.subtitle{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 34px}.field{margin-bottom:22px}label{display:block;font-size:13px;font-weight:600;margin-bottom:8px}input{width:100%;height:54px;border:1px solid var(--line);border-radius:12px;padding:0 16px;font:inherit;font-size:14px;outline:none;transition:.2s;background:#fff}input:focus{border-color:var(--red);box-shadow:0 0 0 4px rgba(200,16,46,.09)}input::placeholder{color:#aaa}.submit{width:100%;height:54px;border:0;border-radius:12px;background:var(--red);color:#fff;font:inherit;font-weight:700;cursor:pointer;transition:.2s}.submit:hover{background:var(--red2);transform:translateY(-1px)}.submit:disabled{opacity:.7;cursor:not-allowed;transform:none}.message{min-height:22px;margin-top:14px;text-align:center;font-size:12px;color:var(--red)}.hint{margin-top:26px;padding-top:20px;border-top:1px solid #eee;text-align:center;color:#8a8a8a;font-size:11px;line-height:1.5}.user-icon{position:relative}.user-icon:before{content:"";position:absolute;right:17px;top:17px;width:17px;height:17px;border:1.5px solid #aaa;border-radius:50%}.user-icon:after{content:"";position:absolute;right:14px;top:37px;width:23px;height:11px;border:1.5px solid #aaa;border-bottom:0;border-radius:14px 14px 0 0}.user-icon input{padding-right:52px}
-@media(max-width:760px){body{padding:0}.shell{min-height:100vh;border-radius:0;grid-template-columns:1fr}.brand{min-height:285px;padding:34px}.brand h1{font-size:32px}.footer{display:none}.form-side{padding:42px 28px}}
+:root{--red:#c8102e;--red-dark:#920c22;--white:#fff;--ink:#151515;--muted:#707070;--line:#e9e9e9;--bg:#f5f6f8}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--ink);display:grid;place-items:center;padding:24px;overflow-x:hidden}
+body:before{content:"";position:fixed;width:650px;height:650px;border-radius:50%;background:radial-gradient(circle,rgba(200,16,46,.13),transparent 68%);top:-300px;right:-180px;pointer-events:none;animation:float 8s ease-in-out infinite}
+body:after{content:"";position:fixed;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(200,16,46,.08),transparent 68%);bottom:-280px;left:-180px;pointer-events:none;animation:float 10s ease-in-out infinite reverse}
+.shell{position:relative;width:min(1080px,100%);min-height:640px;display:grid;grid-template-columns:1.03fr .97fr;background:var(--white);border-radius:28px;overflow:hidden;box-shadow:0 30px 90px rgba(20,20,20,.14);animation:enter .65s cubic-bezier(.2,.8,.2,1) both}
+.brand{position:relative;overflow:hidden;padding:54px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;background:linear-gradient(140deg,#e01a3d 0%,#c8102e 45%,#940b22 100%)}
+.brand:before,.brand:after{content:"";position:absolute;border:1px solid rgba(255,255,255,.15);border-radius:50%;pointer-events:none}.brand:before{width:560px;height:560px;right:-330px;top:-210px;animation:orbit 13s linear infinite}.brand:after{width:700px;height:700px;left:-510px;bottom:-420px;animation:orbit 18s linear infinite reverse}
+.grid{position:absolute;inset:0;opacity:.07;background-image:linear-gradient(rgba(255,255,255,.8) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.8) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom right,#000,transparent 75%);pointer-events:none}
+.brand-content,.brand-footer{position:relative;z-index:2}.logo-box{width:190px;min-height:72px;padding:10px 14px;border-radius:16px;background:rgba(255,255,255,.98);display:flex;align-items:center;justify-content:center;box-shadow:0 14px 35px rgba(0,0,0,.14);margin-bottom:34px;animation:pulse 4s ease-in-out infinite}.logo-box img{display:block;max-width:100%;max-height:55px;width:auto;height:auto;object-fit:contain}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;opacity:.78}.brand h1{font-size:45px;line-height:1.03;letter-spacing:-.05em;margin:13px 0 20px}.brand p{max-width:420px;margin:0;color:rgba(255,255,255,.86);font-size:14px;line-height:1.75}.brand-footer{display:flex;align-items:center;gap:9px;font-size:11px;color:rgba(255,255,255,.7)}.status-dot{width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.12);animation:blink 2s infinite}
+.form-side{padding:58px clamp(34px,6vw,78px);display:flex;align-items:center;background:#fff}.form{width:100%;max-width:400px;margin:auto}.mini-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;color:#8a8a8a;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.mini-logo img{height:30px;width:auto;max-width:105px;object-fit:contain}.form h2{font-size:32px;line-height:1.1;letter-spacing:-.045em;margin:0 0 9px}.subtitle{margin:0 0 34px;color:var(--muted);font-size:14px;line-height:1.65}.field{margin-bottom:22px}.field label{display:block;font-size:13px;font-weight:700;margin:0 0 9px}.input-wrap{position:relative}.input-wrap input{width:100%;height:56px;border:1px solid var(--line);border-radius:13px;padding:0 50px 0 17px;outline:none;font:inherit;font-size:14px;background:#fff;transition:.22s}.input-wrap input:hover{border-color:#d7d7d7}.input-wrap input:focus{border-color:var(--red);box-shadow:0 0 0 4px rgba(200,16,46,.09)}.input-icon{position:absolute;right:17px;top:18px;width:19px;height:19px;opacity:.45}.input-icon:before{content:"";position:absolute;left:5px;top:0;width:9px;height:9px;border:1.5px solid currentColor;border-radius:50%}.input-icon:after{content:"";position:absolute;left:2px;bottom:0;width:15px;height:9px;border:1.5px solid currentColor;border-bottom:0;border-radius:12px 12px 0 0}.submit{position:relative;width:100%;height:56px;border:0;border-radius:13px;background:linear-gradient(135deg,var(--red),#a70e27);color:#fff;font:inherit;font-weight:800;cursor:pointer;overflow:hidden;box-shadow:0 12px 25px rgba(200,16,46,.22);transition:transform .2s,box-shadow .2s,filter .2s}.submit:before{content:"";position:absolute;top:0;left:-80%;width:55%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-18deg);animation:shine 3.2s ease-in-out infinite}.submit:hover{transform:translateY(-2px);box-shadow:0 16px 32px rgba(200,16,46,.28);filter:saturate(1.08)}.submit:active{transform:translateY(0)}.submit span{position:relative;z-index:1}.message{min-height:22px;margin-top:14px;text-align:center;font-size:12px;color:var(--red);font-weight:600}.hint{margin-top:30px;padding-top:20px;border-top:1px solid #eee;text-align:center;color:#8b8b8b;font-size:11px;line-height:1.55}.hint strong{color:#666}
+@media(max-width:780px){body{padding:0}.shell{min-height:100vh;border-radius:0;grid-template-columns:1fr}.brand{min-height:330px;padding:34px}.logo-box{width:165px;min-height:64px;margin-bottom:26px}.logo-box img{max-height:48px}.brand h1{font-size:34px}.brand p{font-size:13px}.brand-footer{display:none}.form-side{padding:44px 28px}.mini-logo{display:none}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+@keyframes enter{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}@keyframes float{50%{transform:translate3d(0,25px,0) scale(1.04)}}@keyframes orbit{to{transform:rotate(360deg)}}@keyframes pulse{50%{transform:translateY(-2px);box-shadow:0 18px 40px rgba(0,0,0,.18)}}@keyframes blink{50%{opacity:.45;box-shadow:0 0 0 8px rgba(255,255,255,.06)}}@keyframes shine{0%,55%{left:-80%}75%,100%{left:130%}}
 </style>
 </head>
 <body>
 <main class="shell">
 <section class="brand">
-<div class="content"><div class="logo">AP</div><div class="eyebrow">Costalog</div><h1>Abridor de<br>Processos</h1><p>Entre no sistema de forma rápida e simples. Informe seu nome para acessar sua área de trabalho.</p></div>
-<div class="footer">Sistema interno • Acesso autorizado</div>
+<div class="grid"></div>
+<div class="brand-content">
+<div class="logo-box"><img src="https://raw.githubusercontent.com/souzarlk/abridor-de-processos/main/Design%20sem%20nome%20%2844%29%20-%20Copia%20-%20Copia.png" alt="Logo Costalog"></div>
+<div class="eyebrow">Costalog • Sistema interno</div>
+<h1>Abridor de<br>Processos</h1>
+<p>Uma experiência simples, rápida e moderna para acessar o seu ambiente de processos.</p>
+</div>
+<div class="brand-footer"><span class="status-dot"></span> Plataforma Costalog • Acesso autorizado</div>
 </section>
 <section class="form-side">
-<form class="form" id="loginForm">
+<form class="form" id="loginForm" novalidate>
+<div class="mini-logo"><img src="https://raw.githubusercontent.com/souzarlk/abridor-de-processos/main/Design%20sem%20nome%20%2844%29%20-%20Copia%20-%20Copia.png" alt="Costalog"></div>
 <h2>Olá! 👋</h2>
-<p class="subtitle">Para começar, informe seu nome abaixo.</p>
-<div class="field user-icon"><label for="name">Seu nome</label><input id="name" name="name" type="text" autocomplete="name" placeholder="Digite seu nome completo" maxlength="80" required></div>
-<button class="submit" id="submit" type="submit">Entrar no sistema</button>
+<p class="subtitle">Informe seu nome para entrar no Abridor de Processos.</p>
+<div class="field">
+<label for="name">Seu nome</label>
+<div class="input-wrap"><input id="name" name="name" type="text" autocomplete="name" placeholder="Digite seu nome completo" maxlength="80" required><span class="input-icon" aria-hidden="true"></span></div>
+</div>
+<button class="submit" id="submit" type="submit"><span>Entrar no sistema&nbsp; →</span></button>
 <div class="message" id="message" role="alert"></div>
-<div class="hint">Acesso simplificado para uso interno.<br>Não é necessário informar senha.</div>
+<div class="hint">Acesso simplificado para uso interno.<br><strong>Não é necessário informar senha.</strong></div>
 </form>
 </section>
 </main>
 <script>
 const form=document.getElementById('loginForm');const nameInput=document.getElementById('name');const message=document.getElementById('message');const submit=document.getElementById('submit');
-form.addEventListener('submit',e=>{e.preventDefault();const name=nameInput.value.trim();message.textContent='';if(name.length<2){message.textContent='Digite seu nome para continuar.';nameInput.focus();return;}sessionStorage.setItem('abridor_nome',name);submit.disabled=true;submit.textContent='Entrando...';setTimeout(()=>{window.location.href='inicio.html';},450);});
+const saved=sessionStorage.getItem('abridor_nome');if(saved)nameInput.value=saved;
+form.addEventListener('submit',e=>{e.preventDefault();const name=nameInput.value.trim();message.textContent='';if(name.length<2){message.textContent='Digite seu nome para continuar.';nameInput.focus();return;}sessionStorage.setItem('abridor_nome',name);submit.disabled=true;submit.querySelector('span').textContent='Entrando...';setTimeout(()=>{window.location.href='inicio.html';},500);});
 </script>
 </body>
 </html>
