@@ -24,12 +24,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: functions/package-lock.json
 
       - name: Instalar dependências
         working-directory: functions
-        run: npm ci
+        run: npm install
 
       - name: Autenticar no Google Cloud
         uses: google-github-actions/auth@v2
