@@ -42,10 +42,13 @@ async function callExtractProcess(formData){
 }
 
 // Mantém compatibilidade com a página atual, que chama /api/extract-process.
+// IMPORTANTE: não interceptar a própria URL da Cloud Function, pois isso
+// causaria recursão infinita (fetch -> bridge -> fetch -> bridge...) e travaria
+// a página ao clicar em Analisar.
 const originalFetch=window.fetch.bind(window);
 window.fetch=async(input,init={})=>{
   const url=typeof input==='string'?input:(input?.url||'');
-  const isAiRequest=url.includes('/api/extract-process')||url.includes('cloudfunctions.net/extractProcess');
+  const isAiRequest=url.includes('/api/extract-process');
   if(!isAiRequest)return originalFetch(input,init);
   const body=init?.body instanceof FormData?init.body:new FormData();
   return callExtractProcess(body);
