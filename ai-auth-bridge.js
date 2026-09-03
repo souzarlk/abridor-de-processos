@@ -11,7 +11,6 @@ const firebaseConfig={
   measurementId:'G-L3RX6R9KST'
 };
 
-// Evita que as duas tags antigas do arquivo HTML instalem dois interceptadores.
 if(window.__costalogAIBridgeInstalled){
   console.log('[Costalog] Bridge de IA já estava ativo.');
 }else{
@@ -25,7 +24,6 @@ if(window.__costalogAIBridgeInstalled){
   const app=getApps().length?getApp():initializeApp(firebaseConfig);
   const auth=getAuth(app);
 
-  // Espera o Firebase terminar de restaurar o login salvo no navegador.
   const authReady=new Promise(resolve=>{
     let finished=false;
     const unsubscribe=onAuthStateChanged(auth,user=>{
@@ -48,7 +46,13 @@ if(window.__costalogAIBridgeInstalled){
         const idToken=await user.getIdToken();
         const response=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${idToken}`},body:formData});
         const text=await response.text();
-        return new Response(text,{status:response.status,headers:{'Content-Type':response.headers.get('content-type')||'application/json'}});
+
+        // 404/405/5xx no primeiro endereço: tenta o endereço direto da função.
+        // 200/400/401/403/429 são respostas reais da API e devem voltar para a página.
+        if(response.status!==404 && response.status!==405 && response.status<500){
+          return new Response(text,{status:response.status,headers:{'Content-Type':response.headers.get('content-type')||'application/json'}});
+        }
+        lastError=new Error(`Endpoint ${url} respondeu HTTP ${response.status}`);
       }catch(error){
         lastError=error;
         console.warn('[Costalog] Falha no endpoint de IA:',url,error);
