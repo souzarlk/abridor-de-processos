@@ -1,4 +1,4 @@
-name: Ativar autenticacao da IA na tela de processo
+name: Publicar e ativar API de IA
 on:
   push:
     branches: [main]
@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Inserir ponte de autenticacao
         shell: bash
         run: |
@@ -16,11 +17,32 @@ jobs:
           from pathlib import Path
           p=Path('abrir-processo.html')
           s=p.read_text(encoding='utf-8')
-          tag='<script type="module" src="./ai-auth-bridge.js?v=20260903a"></script>'
+          tag='<script type="module" src="./ai-auth-bridge.js?v=20260903c"></script>'
           if tag not in s:
               s=s.replace('</body>',tag+'\n</body>')
               p.write_text(s,encoding='utf-8')
           PY
+
+      - name: Instalar dependencias da funcao
+        working-directory: functions
+        run: npm install
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Autenticar no Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+
+      - name: Instalar Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Publicar Cloud Function e Firebase Hosting
+        run: firebase deploy --only functions:extractProcess,hosting --project abridor-de-processos --non-interactive
+
       - name: Commitar alteracao
         shell: bash
         run: |
