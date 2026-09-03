@@ -15,7 +15,22 @@ const firebaseConfig={
 
 const RECAPTCHA_SITE_KEY='6LciI6ctAAAAACfSDExWGOw43rVUFPv4I8EiVeln';
 const app=getApps().length?getApp():initializeApp(firebaseConfig);
-const appCheck=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),isTokenAutoRefreshEnabled:true});
+
+// O arquivo pode ser carregado mais de uma vez por cache/versões antigas da página.
+// initializeAppCheck só pode ser chamado uma vez por Firebase App, então compartilhamos
+// a instância pelo window para evitar a segunda inicialização quebrar o App Check.
+let appCheck;
+try{
+  appCheck=window.__costalogAppCheck;
+  if(!appCheck){
+    appCheck=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),isTokenAutoRefreshEnabled:true});
+    window.__costalogAppCheck=appCheck;
+  }
+}catch(error){
+  console.error('[Costalog] Falha ao inicializar Firebase App Check:',error);
+  appCheck=window.__costalogAppCheck||null;
+}
+
 const auth=getAuth(app);
 const ai=getAI(app,{backend:new GoogleAIBackend(),useLimitedUseAppCheckTokens:true});
 
@@ -35,17 +50,21 @@ function cleanJsonText(text){let value=String(text||'').trim();if(value.startsWi
 function normalizeFields(fields){const out={};for(const key of FIELD_KEYS){const x=fields?.[key];if(x&&typeof x==='object')out[key]={value:x.value===undefined?null:x.value,confidence:Number.isFinite(Number(x.confidence))?Math.max(0,Math.min(1,Number(x.confidence))):0,source:x.source&&typeof x.source==='object'?x.source:null,warning:x.warning??null};else out[key]={value:null,confidence:0,source:null,warning:null};}return out;}
 
 async function ensureAppCheck(){
+  if(!appCheck)throw new Error('Firebase App Check não foi inicializado. Verifique se a chave reCAPTCHA Enterprise está registrada para este app Web.');
   let lastError=null;
   for(let attempt=0;attempt<3;attempt++){
     try{
-      await getToken(appCheck,true);
+      // Não força uma nova avaliação a cada clique. O SDK mantém/renova o token
+      // automaticamente e o Firebase AI Logic usa o token apropriado na requisição.
+      await getToken(appCheck,false);
       return;
     }catch(error){
       lastError=error;
       if(attempt<2)await new Promise(resolve=>setTimeout(resolve,2500));
     }
   }
-  throw new Error('A verificação de segurança do App Check não foi validada. Confirme no Firebase App Check se esta chave reCAPTCHA Enterprise está registrada para o app Web e se o domínio permitido é exatamente souzarlk.github.io.');
+  const detail=lastError?.code?` (${lastError.code})`:'';
+  throw new Error(`A verificação de segurança do App Check não foi validada${detail}. Confirme no Firebase App Check se esta chave reCAPTCHA Enterprise está registrada para o app Web e se o domínio permitido é exatamente souzarlk.github.io.`);
 }
 
 async function analyzeWithGemini(formData){
