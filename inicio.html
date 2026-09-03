@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><meta name="theme-color" content="#c8102e"><title>Abridor de Processos | Costalog</title>
+<style>body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f5f5;color:#171717;min-height:100vh}.top{height:72px;background:#c8102e;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 32px;box-sizing:border-box;box-shadow:0 4px 18px rgba(0,0,0,.12)}.brand{font-weight:800;font-size:20px}.logout{border:1px solid rgba(255,255,255,.55);background:transparent;color:#fff;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}.logout:hover{background:rgba(255,255,255,.12)}main{max-width:1100px;margin:50px auto;padding:0 25px}.welcome{background:#fff;border-radius:20px;padding:36px;box-shadow:0 12px 35px rgba(0,0,0,.08)}h1{margin:0 0 10px;font-size:34px}p{color:#666;line-height:1.6}.status{display:inline-flex;padding:8px 12px;border-radius:999px;background:#e9f8ef;color:#177245;font-weight:700;font-size:12px}</style>
+</head>
+<body><header class="top"><div class="brand">COSTALOG • Abridor de Processos</div><button class="logout" id="logout">Sair</button></header><main><section class="welcome"><span class="status">● Autenticado</span><h1 id="welcome">Olá!</h1><p>Você está conectado ao Abridor de Processos. Esta página é a área inicial do sistema e está protegida pelo Firebase Authentication.</p></section></main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+const firebaseConfig={apiKey:"AIzaSyBCol6rLWUGIVvjBoaub9lv6eazYqnmOK0",authDomain:"abridor-de-processos.firebaseapp.com",projectId:"abridor-de-processos",storageBucket:"abridor-de-processos.firebasestorage.app",messagingSenderId:"955966759369",appId:"1:955966759369:web:781d4413800b7229820818",measurementId:"G-L3RX6R9KST"};
+const auth=getAuth(initializeApp(firebaseConfig));
+onAuthStateChanged(auth,user=>{if(!user){location.href='index.html';return}document.getElementById('welcome').textContent=`Olá, ${user.displayName||user.email}!`});
+document.getElementById('logout').addEventListener('click',async()=>{await signOut(auth);location.href='index.html'});
+</script></body></html>
