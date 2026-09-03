@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js';
-import { initializeAppCheck, ReCaptchaEnterpriseProvider, getToken } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app-check.js';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app-check.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
 import { getAI, getGenerativeModel, GoogleAIBackend } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-ai.js';
 
@@ -32,6 +32,9 @@ try{
 }
 
 const auth=getAuth(app);
+// O Firebase AI Logic gerencia o App Check automaticamente. Com
+// useLimitedUseAppCheckTokens=true, o SDK gera o token apropriado para cada chamada.
+// Não chamamos getToken() manualmente, pois isso pode disparar appCheck/throttled.
 const ai=getAI(app,{backend:new GoogleAIBackend(),useLimitedUseAppCheckTokens:true});
 
 const FIELD_KEYS=['process_number','client','document_type','transport_operation','terminal_service','release_billing_date','closing_date','client_reference','document_number','reservation_number','product','chemical_product','shipper','pickup_location','shipping_agency','customs_broker','broker_reference','bl_awb','consignee','delivery_location','ship','voyage_number','origin_port','maritime_operation','pickup_deadline','delivery_deadline','storage_deadline','demurrage_date','containerized_cargo','container_model','empty_return_deadline','empty_container_terminal','loading_quantity','process_billed','billing_started','estimated_billing_value','estimated_payment_value','checklist','observation','show_turns','route','storage_location','generate_empty_turn','generate_full_turn'];
@@ -49,30 +52,11 @@ function fileToGenerativePart(file){return new Promise((resolve,reject)=>{const 
 function cleanJsonText(text){let value=String(text||'').trim();if(value.startsWith('```'))value=value.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();const first=value.indexOf('{');const last=value.lastIndexOf('}');if(first>=0&&last>first)value=value.slice(first,last+1);return value;}
 function normalizeFields(fields){const out={};for(const key of FIELD_KEYS){const x=fields?.[key];if(x&&typeof x==='object')out[key]={value:x.value===undefined?null:x.value,confidence:Number.isFinite(Number(x.confidence))?Math.max(0,Math.min(1,Number(x.confidence))):0,source:x.source&&typeof x.source==='object'?x.source:null,warning:x.warning??null};else out[key]={value:null,confidence:0,source:null,warning:null};}return out;}
 
-async function ensureAppCheck(){
-  if(!appCheck)throw new Error('Firebase App Check não foi inicializado. Verifique se a chave reCAPTCHA Enterprise está registrada para este app Web.');
-  let lastError=null;
-  for(let attempt=0;attempt<3;attempt++){
-    try{
-      // Não força uma nova avaliação a cada clique. O SDK mantém/renova o token
-      // automaticamente e o Firebase AI Logic usa o token apropriado na requisição.
-      await getToken(appCheck,false);
-      return;
-    }catch(error){
-      lastError=error;
-      if(attempt<2)await new Promise(resolve=>setTimeout(resolve,2500));
-    }
-  }
-  const detail=lastError?.code?` (${lastError.code})`:'';
-  throw new Error(`A verificação de segurança do App Check não foi validada${detail}. Confirme no Firebase App Check se esta chave reCAPTCHA Enterprise está registrada para o app Web e se o domínio permitido é exatamente souzarlk.github.io.`);
-}
-
 async function analyzeWithGemini(formData){
   const user=currentUser||await authReady;if(!user)throw new Error('Sua sessão expirou. Faça login novamente.');
   const files=formData.getAll('files').filter(x=>x instanceof File);if(!files.length)throw new Error('Envie pelo menos um PDF.');if(files.length>3)throw new Error('Para a análise direta por IA, envie no máximo 3 PDFs por vez.');
   const total=files.reduce((n,f)=>n+f.size,0);if(total>14*1024*1024)throw new Error('Os PDFs selecionados são grandes demais para uma única análise. Reduza o tamanho ou envie menos arquivos.');
   for(const f of files)if(f.type!=='application/pdf')throw new Error(`O arquivo ${f.name} não é PDF.`);
-  await ensureAppCheck();
   const parts=[{text:`ARQUIVOS ENVIADOS:\n${files.map((f,i)=>`${i+1}: ${f.name}`).join('\n')}\n\nTAREFA: extraia os campos abaixo usando os PDFs. file_index começa em 1. page é o número da página do PDF. quote deve ser uma pequena transcrição literal da evidência. Se um campo não estiver nos documentos, mantenha value:null, confidence:0, source:null e warning:null.\n\nCAMPOS OBRIGATÓRIOS:\n${FIELD_KEYS.join(', ')}\n\nESTRUTURA EXATA DE CADA CAMPO:\n${JSON.stringify({value:null,confidence:0,source:{file_index:1,filename:'nome.pdf',page:1,quote:'evidência'},warning:null})}\n\nEXEMPLO DE ESTRUTURA COMPLETA:\n${JSON_EXAMPLE}`}];
   for(const f of files)parts.push(await fileToGenerativePart(f));
   const result=await model.generateContent(parts);const text=result.response.text();if(!text)throw new Error('A IA não retornou uma resposta válida.');
