@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app-check.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
 import { getAI, getGenerativeModel, GoogleAIBackend } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-ai.js';
 
@@ -12,7 +13,17 @@ const firebaseConfig={
   measurementId:'G-L3RX6R9KST'
 };
 
+const RECAPTCHA_SITE_KEY='6LciI6ctAAAAACfSDExWGOw43rVUFPv4I8EiVeln';
+
 const app=getApps().length?getApp():initializeApp(firebaseConfig);
+
+// App Check precisa ser inicializado antes dos demais serviços Firebase.
+// O token é renovado automaticamente para evitar expiração durante o uso da IA.
+const appCheck=initializeAppCheck(app,{
+  provider:new ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),
+  isTokenAutoRefreshEnabled:true
+});
+
 const auth=getAuth(app);
 const ai=getAI(app,{backend:new GoogleAIBackend()});
 
