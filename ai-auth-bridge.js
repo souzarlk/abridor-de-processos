@@ -17,15 +17,16 @@ const RECAPTCHA_SITE_KEY='6LciI6ctAAAAACfSDExWGOw43rVUFPv4I8EiVeln';
 
 const app=getApps().length?getApp():initializeApp(firebaseConfig);
 
-// App Check precisa ser inicializado antes dos demais serviços Firebase.
-// O token é renovado automaticamente para evitar expiração durante o uso da IA.
+// App Check precisa ser inicializado antes dos serviços Firebase.
+// A renovação automática evita tokens expirados durante o uso da IA.
 const appCheck=initializeAppCheck(app,{
   provider:new ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),
   isTokenAutoRefreshEnabled:true
 });
 
 const auth=getAuth(app);
-const ai=getAI(app,{backend:new GoogleAIBackend()});
+// Tokens de uso limitado ajudam a evitar rejeições por reutilização/replay do token.
+const ai=getAI(app,{backend:new GoogleAIBackend(),useLimitedUseAppCheckTokens:true});
 
 const FIELD_KEYS=['process_number','client','document_type','transport_operation','terminal_service','release_billing_date','closing_date','client_reference','document_number','reservation_number','product','chemical_product','shipper','pickup_location','shipping_agency','customs_broker','broker_reference','bl_awb','consignee','delivery_location','ship','voyage_number','origin_port','maritime_operation','pickup_deadline','delivery_deadline','storage_deadline','demurrage_date','containerized_cargo','container_model','empty_return_deadline','empty_container_terminal','loading_quantity','process_billed','billing_started','estimated_billing_value','estimated_payment_value','checklist','observation','show_turns','route','storage_location','generate_empty_turn','generate_full_turn'];
 
