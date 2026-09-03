@@ -1,8 +1,6 @@
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js';
-import { getAuth } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
 
-// A análise é feita no backend. O GitHub Pages não executa /api/*, então
-// encaminhamos a requisição diretamente para a Cloud Function já implantada.
 const firebaseConfig={
   apiKey:'AIzaSyBCol6rLWUGIVvjBoaub9lv6eazYqnmOK0',
   authDomain:'abridor-de-processos.firebaseapp.com',
@@ -17,16 +15,26 @@ const FUNCTION_URL='https://southamerica-east1-abridor-de-processos.cloudfunctio
 const app=getApps().length?getApp():initializeApp(firebaseConfig);
 const auth=getAuth(app);
 
+// O Firebase pode ainda estar restaurando a sessão quando o usuário clica em
+// analisar. Esperamos a primeira resposta do Auth em vez de consultar
+// auth.currentUser imediatamente.
+const authReady=new Promise(resolve=>{
+  let done=false;
+  const unsubscribe=onAuthStateChanged(auth,user=>{
+    if(done)return;
+    done=true;
+    unsubscribe();
+    resolve(user);
+  });
+});
+
 async function callExtractProcess(formData){
-  const user=auth.currentUser;
+  const user=await authReady;
   if(!user){
     return new Response(JSON.stringify({error:'Sessão não autenticada. Faça login novamente.'}),{status:401,headers:{'Content-Type':'application/json'}});
   }
 
   try{
-    // Não forçamos refresh do token: getIdToken(true) estava causando
-    // auth/quota-exceeded. O Firebase reutiliza o token válido em cache e só
-    // renova quando necessário.
     const idToken=await user.getIdToken();
     const response=await fetch(FUNCTION_URL,{
       method:'POST',
@@ -41,18 +49,15 @@ async function callExtractProcess(formData){
   }
 }
 
-// Mantém compatibilidade com a página atual, que chama /api/extract-process.
-// IMPORTANTE: não interceptar a própria URL da Cloud Function, pois isso
-// causaria recursão infinita (fetch -> bridge -> fetch -> bridge...) e travaria
-// a página ao clicar em Analisar.
+// A página chama /api/extract-process. Interceptamos somente essa rota.
+// A URL real da Cloud Function NUNCA é interceptada, evitando recursão infinita.
 const originalFetch=window.fetch.bind(window);
 window.fetch=async(input,init={})=>{
   const url=typeof input==='string'?input:(input?.url||'');
-  const isAiRequest=url.includes('/api/extract-process');
-  if(!isAiRequest)return originalFetch(input,init);
+  if(!url.includes('/api/extract-process'))return originalFetch(input,init);
   const body=init?.body instanceof FormData?init.body:new FormData();
   return callExtractProcess(body);
 };
 
 window.costalogAIEndpoint='/api/extract-process';
-console.log('[Costalog] Análise configurada via Cloud Function, sem Firebase AI Logic/App Check no navegador.');
+console.log('[Costalog] Análise configurada via Cloud Function; sessão Firebase aguardará restauração antes da análise.');
