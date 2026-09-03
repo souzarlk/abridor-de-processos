@@ -24,7 +24,10 @@ async function callExtractProcess(formData){
   }
 
   try{
-    const idToken=await user.getIdToken(true);
+    // Não forçamos refresh do token: getIdToken(true) estava causando
+    // auth/quota-exceeded. O Firebase reutiliza o token válido em cache e só
+    // renova quando necessário.
+    const idToken=await user.getIdToken();
     const response=await fetch(FUNCTION_URL,{
       method:'POST',
       headers:{Authorization:`Bearer ${idToken}`},
@@ -34,7 +37,7 @@ async function callExtractProcess(formData){
     return new Response(text,{status:response.status,headers:{'Content-Type':response.headers.get('content-type')||'application/json'}});
   }catch(error){
     console.error('[Costalog] Erro ao chamar Cloud Function:',error);
-    return new Response(JSON.stringify({error:'Não foi possível conectar ao servidor de análise. Tente novamente.'}),{status:502,headers:{'Content-Type':'application/json'}});
+    return new Response(JSON.stringify({error:error?.message==='auth/quota-exceeded'?'A autenticação do Firebase atingiu temporariamente o limite de solicitações. Aguarde alguns minutos e tente novamente.':'Não foi possível conectar ao servidor de análise. Tente novamente.'}),{status:502,headers:{'Content-Type':'application/json'}});
   }
 }
 
