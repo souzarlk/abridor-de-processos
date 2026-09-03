@@ -20,6 +20,9 @@ if(window.__costalogAIBridgeInstalled){
   const app=getApps().length?getApp():initializeApp(firebaseConfig);
   const auth=getAuth(app);
 
+  const HOSTING_ENDPOINT='https://abridor-de-processos.web.app/api/extract-process';
+  const FUNCTION_ENDPOINT='https://southamerica-east1-abridor-de-processos.cloudfunctions.net/extractProcess';
+
   const authReady=new Promise(resolve=>{
     let finished=false;
     const unsubscribe=onAuthStateChanged(auth,user=>{
@@ -42,8 +45,13 @@ if(window.__costalogAIBridgeInstalled){
   }
 
   async function request(url,formData,idToken){
-    const options={method:'POST',headers:{Authorization:`Bearer ${idToken}`},body:makeFormData(formData)};
-    return url==='/api/extract-process'?originalFetch(url,options):fetch(url,options);
+    // Sempre usa o fetch original. Isso evita que a própria ponte intercepte
+    // novamente a URL do Firebase e entre em recursão.
+    return originalFetch(url,{
+      method:'POST',
+      headers:{Authorization:`Bearer ${idToken}`},
+      body:makeFormData(formData)
+    });
   }
 
   async function callExtractProcess(formData){
@@ -52,30 +60,49 @@ if(window.__costalogAIBridgeInstalled){
       return new Response(JSON.stringify({error:'Sua sessão não está ativa. Volte para o início, faça login novamente e tente analisar o PDF.'}),{status:401,headers:{'Content-Type':'application/json'}});
     }
 
-    const idToken=await user.getIdToken();
-    const endpoints=[
-      '/api/extract-process',
-      'https://southamerica-east1-abridor-de-processos.cloudfunctions.net/extractProcess'
-    ];
+    let idToken;
+    try{
+      idToken=await user.getIdToken();
+    }catch(error){
+      console.error('[Costalog] Não foi possível obter o token do Firebase:',error);
+      return new Response(JSON.stringify({error:'Sua sessão expirou. Volte para o início, faça login novamente e tente analisar o PDF.'}),{status:401,headers:{'Content-Type':'application/json'}});
+    }
+
+    const endpoints=[HOSTING_ENDPOINT,FUNCTION_ENDPOINT];
+    let lastResponse=null;
     let lastError=null;
 
     for(const url of endpoints){
       try{
         const response=await request(url,formData,idToken);
         const text=await response.text();
+        lastResponse={response,text,url};
 
-        if(response.ok || (response.status>=400 && response.status<500)){
+        // Qualquer resposta HTTP significa que conseguimos chegar ao servidor.
+        // Retornamos o erro real em vez de mascará-lo como 502.
+        if(response.status!==404 && response.status!==405 && response.status!==502 && response.status!==503){
           return new Response(text,{status:response.status,headers:{'Content-Type':response.headers.get('content-type')||'application/json'}});
         }
-        lastError=new Error(`Endpoint ${url} respondeu HTTP ${response.status}`);
+
+        console.warn('[Costalog] Endpoint não utilizável:',url,'HTTP',response.status);
       }catch(error){
         lastError=error;
-        console.warn('[Costalog] Falha no endpoint de IA:',url,error);
+        console.warn('[Costalog] Falha de conexão com endpoint:',url,error);
       }
     }
 
-    console.error('[Costalog] Todos os endpoints de IA falharam:',lastError);
-    return new Response(JSON.stringify({error:'Não foi possível conectar ao servidor de análise. O servidor da IA não respondeu. Tente novamente em alguns segundos.'}),{status:502,headers:{'Content-Type':'application/json'}});
+    // Se o Hosting estiver sem rewrite, o segundo endpoint ainda pode funcionar.
+    // Se ambos falharem, informe exatamente o último status recebido.
+    if(lastResponse){
+      const {response,text}=lastResponse;
+      return new Response(text||JSON.stringify({error:`Servidor de IA respondeu HTTP ${response.status}.`}),{
+        status:response.status,
+        headers:{'Content-Type':response.headers.get('content-type')||'application/json'}
+      });
+    }
+
+    console.error('[Costalog] Nenhum endpoint de IA pôde ser acessado:',lastError);
+    return new Response(JSON.stringify({error:'Não foi possível conectar ao servidor de análise. Verifique a publicação da Cloud Function extractProcess.'}),{status:502,headers:{'Content-Type':'application/json'}});
   }
 
   window.fetch=async(input,init={})=>{
@@ -86,5 +113,5 @@ if(window.__costalogAIBridgeInstalled){
   };
 
   window.costalogAIEndpoint='/api/extract-process';
-  console.log('[Costalog] Análise de PDFs configurada via Firebase + Cloud Function.');
+  console.log('[Costalog] Análise de PDFs configurada via Firebase Hosting + Cloud Function.');
 }
