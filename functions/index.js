@@ -26,7 +26,39 @@ const SYSTEM_INSTRUCTION=`Você é um extrator documental para processos logíst
 function cors(req,res){const origin=req.headers.origin||'';const allowed=['https://souzarlk.github.io','https://abridor-de-processos.web.app','https://abridor-de-processos.firebaseapp.com'];if(allowed.includes(origin)){res.set('Access-Control-Allow-Origin',origin);}res.set('Vary','Origin');res.set('Access-Control-Allow-Headers','Content-Type, Authorization');res.set('Access-Control-Allow-Methods','POST, OPTIONS');res.set('Access-Control-Max-Age','3600');}
 async function authenticate(req){const h=req.headers.authorization||'';if(!h.startsWith('Bearer '))throw new Error('UNAUTHENTICATED');return admin.auth().verifyIdToken(h.slice(7));}
 
-// IMPORTANTE: a função precisa aceitar a requisição OPTIONS anonimamente para que
-// o navegador do GitHub Pages consiga completar o preflight CORS. A autenticação
-// real continua sendo exigida no POST através do Firebase ID token.
-exports.extractProcess=onRequest({region:'southamerica-east1',timeoutSeconds:540,memory:'1GiB',maxInstances:5,secrets:[OPENAI_API_KEY],invoker:'public'},(req,res)=>{cors(req,res);if(req.method==='OPTIONS')return res.status(204).send('');if(req.method!=='POST')return res.status(405).json({error:'Método não permitido.'});upload.array('files',8)(req,res,async err=>{if(err)return res.status(400).json({error:'Falha ao receber os PDFs: '+err.message});let remote=[];try{const user=await authenticate(req);if(!req.files?.length)return res.status(400).json({error:'Envie pelo menos um PDF.'});for(const f of req.files)if(f.mimetype!=='application/pdf')return res.status(400).json({error:`O arquivo ${f.originalname} não é PDF.`});const client=new OpenAI({apiKey:OPENAI_API_KEY.value()});const content=[{type:'input_text',text:`${SYSTEM_INSTRUCTION}\n\nARQUIVOS (file_index):\n${req.files.map((f,i)=>`${i+1}: ${f.originalname}`).join('\n')}\n\nUsuário autenticado: ${user.uid}.` }];for(const [i,f] of req.files.entries()){const up=await client.files.create({file:await toFile(f.buffer,f.originalname,{type:f.mimetype}),purpose:'user_data'});remote.push(up.id);content.push({type:'input_file',file_id:up.id});}const response=await client.responses.create({model:process.env.OPENAI_MODEL||'gpt-5.6-sol',input:[{role:'user',content}],text:{format:{type:'json_schema',name:'costalog_process_extraction',strict:true,schema:outputSchema}}});return res.status(200).json({fields:JSON.parse(response.output_text),meta:{model:process.env.OPENAI_MODEL||'gpt-5.6-sol',files:req.files.map(f=>f.originalname)}});}catch(e){console.error('extractProcess',e);if(e.message==='UNAUTHENTICATED')return res.status(401).json({error:'Sessão não autenticada. Faça login novamente.'});if(e?.status===401)return res.status(502).json({error:'A credencial do serviço de IA não foi aceita pelo servidor.'});if(e?.status===429)return res.status(429).json({error:'O serviço de IA está temporariamente limitado. Tente novamente.'});return res.status(500).json({error:'A extração não pôde ser validada com segurança.'});}finally{try{const c=new OpenAI({apiKey:OPENAI_API_KEY.value()});await Promise.all(remote.map(id=>c.files.delete(id).catch(()=>null)));}catch(_){}}});});
+// API de extração COSTALOG. OPTIONS é público para o preflight CORS;
+// POST exige um Firebase ID token válido.
+exports.extractProcess=onRequest({region:'southamerica-east1',timeoutSeconds:540,memory:'1GiB',maxInstances:5,secrets:[OPENAI_API_KEY],invoker:'public'},(req,res)=>{
+  cors(req,res);
+  res.set('Cache-Control','no-store');
+  res.set('X-Costalog-API','extractProcess-v2');
+  if(req.method==='OPTIONS')return res.status(204).send('');
+  if(req.method!=='POST')return res.status(405).json({error:`Método não permitido: ${req.method}. Use POST.`});
+
+  upload.array('files',8)(req,res,async err=>{
+    if(err)return res.status(400).json({error:'Falha ao receber os PDFs: '+err.message});
+    let remote=[];
+    try{
+      const user=await authenticate(req);
+      if(!req.files?.length)return res.status(400).json({error:'Envie pelo menos um PDF.'});
+      for(const f of req.files)if(f.mimetype!=='application/pdf')return res.status(400).json({error:`O arquivo ${f.originalname} não é PDF.`});
+      const client=new OpenAI({apiKey:OPENAI_API_KEY.value()});
+      const content=[{type:'input_text',text:`${SYSTEM_INSTRUCTION}\n\nARQUIVOS (file_index):\n${req.files.map((f,i)=>`${i+1}: ${f.originalname}`).join('\n')}\n\nUsuário autenticado: ${user.uid}.`}];
+      for(const [i,f] of req.files.entries()){
+        const up=await client.files.create({file:await toFile(f.buffer,f.originalname,{type:f.mimetype}),purpose:'user_data'});
+        remote.push(up.id);
+        content.push({type:'input_file',file_id:up.id});
+      }
+      const response=await client.responses.create({model:process.env.OPENAI_MODEL||'gpt-5.6-sol',input:[{role:'user',content}],text:{format:{type:'json_schema',name:'costalog_process_extraction',strict:true,schema:outputSchema}}});
+      return res.status(200).json({fields:JSON.parse(response.output_text),meta:{model:process.env.OPENAI_MODEL||'gpt-5.6-sol',files:req.files.map(f=>f.originalname)}});
+    }catch(e){
+      console.error('extractProcess',e);
+      if(e.message==='UNAUTHENTICATED')return res.status(401).json({error:'Sessão não autenticada. Faça login novamente.'});
+      if(e?.status===401)return res.status(502).json({error:'A credencial do serviço de IA não foi aceita pelo servidor.'});
+      if(e?.status===429)return res.status(429).json({error:'O serviço de IA está temporariamente limitado. Tente novamente.'});
+      return res.status(500).json({error:'A extração não pôde ser validada com segurança.'});
+    }finally{
+      try{const c=new OpenAI({apiKey:OPENAI_API_KEY.value()});await Promise.all(remote.map(id=>c.files.delete(id).catch(()=>null)));}catch(_){}
+    }
+  });
+});
