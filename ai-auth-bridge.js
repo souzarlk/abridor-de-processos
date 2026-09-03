@@ -1,5 +1,5 @@
-import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
 
 const firebaseConfig={
   apiKey:'AIzaSyBCol6rLWUGIVvjBoaub9lv6eazYqnmOK0',
@@ -11,53 +11,62 @@ const firebaseConfig={
   measurementId:'G-L3RX6R9KST'
 };
 
-const FUNCTION_URL='https://southamerica-east1-abridor-de-processos.cloudfunctions.net/extractProcess';
-const app=getApps().length?getApp():initializeApp(firebaseConfig);
-const auth=getAuth(app);
+// Evita que as duas tags antigas do arquivo HTML instalem dois interceptadores.
+if(window.__costalogAIBridgeInstalled){
+  console.log('[Costalog] Bridge de IA já estava ativo.');
+}else{
+  window.__costalogAIBridgeInstalled=true;
 
-// O Firebase pode ainda estar restaurando a sessão quando o usuário clica em
-// analisar. Esperamos a primeira resposta do Auth em vez de consultar
-// auth.currentUser imediatamente.
-const authReady=new Promise(resolve=>{
-  let done=false;
-  const unsubscribe=onAuthStateChanged(auth,user=>{
-    if(done)return;
-    done=true;
-    unsubscribe();
-    resolve(user);
-  });
-});
+  const FUNCTION_URLS=[
+    'https://abridor-de-processos.web.app/api/extract-process',
+    'https://southamerica-east1-abridor-de-processos.cloudfunctions.net/extractProcess'
+  ];
 
-async function callExtractProcess(formData){
-  const user=await authReady;
-  if(!user){
-    return new Response(JSON.stringify({error:'Sessão não autenticada. Faça login novamente.'}),{status:401,headers:{'Content-Type':'application/json'}});
-  }
+  const app=getApps().length?getApp():initializeApp(firebaseConfig);
+  const auth=getAuth(app);
 
-  try{
-    const idToken=await user.getIdToken();
-    const response=await fetch(FUNCTION_URL,{
-      method:'POST',
-      headers:{Authorization:`Bearer ${idToken}`},
-      body:formData
+  // Espera o Firebase terminar de restaurar o login salvo no navegador.
+  const authReady=new Promise(resolve=>{
+    let finished=false;
+    const unsubscribe=onAuthStateChanged(auth,user=>{
+      if(finished)return;
+      finished=true;
+      unsubscribe();
+      resolve(user||null);
     });
-    const text=await response.text();
-    return new Response(text,{status:response.status,headers:{'Content-Type':response.headers.get('content-type')||'application/json'}});
-  }catch(error){
-    console.error('[Costalog] Erro ao chamar Cloud Function:',error);
-    return new Response(JSON.stringify({error:error?.message==='auth/quota-exceeded'?'A autenticação do Firebase atingiu temporariamente o limite de solicitações. Aguarde alguns minutos e tente novamente.':'Não foi possível conectar ao servidor de análise. Tente novamente.'}),{status:502,headers:{'Content-Type':'application/json'}});
+  });
+
+  async function callExtractProcess(formData){
+    const user=await authReady;
+    if(!user){
+      return new Response(JSON.stringify({error:'Sua sessão não está ativa. Volte para o início, faça login novamente e tente analisar o PDF.'}),{status:401,headers:{'Content-Type':'application/json'}});
+    }
+
+    let lastError=null;
+    for(const url of FUNCTION_URLS){
+      try{
+        const idToken=await user.getIdToken();
+        const response=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${idToken}`},body:formData});
+        const text=await response.text();
+        return new Response(text,{status:response.status,headers:{'Content-Type':response.headers.get('content-type')||'application/json'}});
+      }catch(error){
+        lastError=error;
+        console.warn('[Costalog] Falha no endpoint de IA:',url,error);
+      }
+    }
+
+    console.error('[Costalog] Todos os endpoints de IA falharam:',lastError);
+    return new Response(JSON.stringify({error:'Não foi possível conectar ao servidor de análise. A conexão com a IA está indisponível no momento. Tente novamente em alguns segundos.'}),{status:502,headers:{'Content-Type':'application/json'}});
   }
+
+  const originalFetch=window.fetch.bind(window);
+  window.fetch=async(input,init={})=>{
+    const url=typeof input==='string'?input:(input?.url||'');
+    if(!url.includes('/api/extract-process'))return originalFetch(input,init);
+    const body=init?.body instanceof FormData?init.body:new FormData();
+    return callExtractProcess(body);
+  };
+
+  window.costalogAIEndpoint='/api/extract-process';
+  console.log('[Costalog] Análise de PDFs configurada via Firebase + Cloud Function.');
 }
-
-// A página chama /api/extract-process. Interceptamos somente essa rota.
-// A URL real da Cloud Function NUNCA é interceptada, evitando recursão infinita.
-const originalFetch=window.fetch.bind(window);
-window.fetch=async(input,init={})=>{
-  const url=typeof input==='string'?input:(input?.url||'');
-  if(!url.includes('/api/extract-process'))return originalFetch(input,init);
-  const body=init?.body instanceof FormData?init.body:new FormData();
-  return callExtractProcess(body);
-};
-
-window.costalogAIEndpoint='/api/extract-process';
-console.log('[Costalog] Análise configurada via Cloud Function; sessão Firebase aguardará restauração antes da análise.');
