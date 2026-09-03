@@ -45,4 +45,5 @@ document.getElementById('registerBtn').addEventListener('click',async()=>{const 
 document.getElementById('resetBtn').addEventListener('click',async()=>{const email=document.getElementById('loginEmail').value.trim();if(!email)return show('Digite seu e-mail primeiro.');try{await sendPasswordResetEmail(auth,email);show('Se o e-mail estiver cadastrado, você receberá as instruções para redefinir a senha.',true)}catch(err){show(friendly(err))}});
 onAuthStateChanged(auth,user=>{if(user&&location.pathname.endsWith('index.html')){/* permanece na tela inicial para permitir troca de conta */}});
 </script>
+<script src="./auth-fix.js?v=20260903b"></script>
 </body></html>
