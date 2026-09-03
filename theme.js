@@ -1,0 +1,1 @@
+(function(){const key='costalog-theme';const saved=localStorage.getItem(key)||'light';document.documentElement.dataset.theme=saved;window.setCostalogTheme=function(theme){const t=theme==='dark'?'dark':'light';localStorage.setItem(key,t);document.documentElement.dataset.theme=t;window.dispatchEvent(new CustomEvent('costalog-theme-change',{detail:t}))};})();
