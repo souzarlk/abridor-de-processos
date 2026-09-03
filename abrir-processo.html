@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<script src="./theme.js?v=20260903a"></script>
+<script src="./theme.js?v=20260903b"></script>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><meta name="theme-color" content="#c8102e">
 <title>Abrir Novo Processo | Costalog</title>
 <style>
@@ -17,7 +17,7 @@
 </style>
 </head>
 <body>
-<header class="top"><div class="brand"><img src="Design sem nome (44) - Copia - Copia.png" alt="COSTALOG"><div class="divider"></div><strong>Abrir novo processo</strong></div><button class="back" onclick="location.href='inicio.html'">← Voltar para início</button></header>
+<header class="top"><div class="brand"><img class="costalog-logo" src="Design sem nome (44) - Copia - Copia.png" alt="COSTALOG"><div class="divider"></div><strong>Abrir novo processo</strong></div><button class="back" onclick="location.href='inicio.html'">← Voltar para início</button></header>
 <main class="wrap">
 <section class="hero"><div><h1>Importar processo</h1><p>Envie um ou mais PDFs. A IA fará a leitura, organizará os dados e mostrará a origem de cada informação.</p></div><div class="secure">🔒 Leitura assistida por IA</div></section>
 <section class="upload"><label class="drop" id="drop" for="pdfInput"><div class="drop-icon">📄</div><strong>Arraste os PDFs aqui ou clique para selecionar</strong><span>PDFs de processos • você pode selecionar vários arquivos</span></label><input id="pdfInput" class="file-input" type="file" accept="application/pdf" multiple><div class="files" id="files"></div><div class="actions"><button class="secondary" id="clearBtn" type="button">Limpar</button><button class="primary" id="analyzeBtn" type="button" disabled>✦ Analisar processo com IA</button></div><div class="status" id="status"></div></section>
@@ -39,7 +39,7 @@ function renderFiles(){fileList.innerHTML=files.map((f,i)=>`<div class="file">�
 function addFiles(list){for(const f of list){if(f.type==='application/pdf' && !files.some(x=>x.name===f.name&&x.size===f.size))files.push(f)}renderFiles();showStatus(files.length?`${files.length} PDF(s) pronto(s) para análise.`:'Selecione pelo menos um PDF.','info')}
 input.onchange=e=>addFiles(e.target.files);['dragenter','dragover'].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.add('drag')}));['dragleave','drop'].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.remove('drag')}));drop.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
 $('clearBtn').onclick=()=>{files=[];extracted=null;input.value='';renderFiles();result.classList.remove('show');showStatus('Seleção limpa.','info')};
-function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function escapeHtml(s){return String(s??'').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]))}
 function setLoading(on,text='Preparando análise...'){loading.classList.toggle('show',on);$('loadingText').textContent=text}
 function renderResults(data){extracted=data;fields.innerHTML=FIELDS.map(([key,label],idx)=>{const x=data?.[key]||{};const val=x.value??'';const has=val!==''&&val!==null&&val!==undefined;return `<article class="field"><div class="field-top"><span class="field-name">${idx+1}. ${label}</span><div class="field-actions"><button class="icon-btn" title="Copiar" data-copy="${key}">⧉</button><button class="icon-btn" title="Ver origem no PDF" data-source="${key}" ${has?'':'disabled'}>▣</button></div></div><div class="value ${has?'':'empty'}">${has?escapeHtml(val):'Não localizado com segurança'}</div>${x.confidence!=null?`<div class="confidence">Confiança da extração: ${Math.round(x.confidence*100)}%</div>`:''}${x.warning?`<div class="warning">⚠ ${escapeHtml(x.warning)}</div>`:''}</article>`}).join('');result.classList.add('show');fields.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{const v=extracted?.[b.dataset.copy]?.value??'';if(v){await navigator.clipboard.writeText(String(v));b.textContent='✓';setTimeout(()=>b.textContent='⧉',900)}});fields.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>showSource(extracted?.[b.dataset.source]));}
 async function analyzeFiles(){if(!files.length)return;setLoading(true,'Enviando PDF(s) para análise segura...');showStatus('A IA está lendo os documentos. Não feche esta página durante a análise.','info');analyze.disabled=true;try{const fd=new FormData();files.forEach(f=>fd.append('files',f,f.name));const res=await fetch(AI_ENDPOINT,{method:'POST',body:fd});let body={};try{body=await res.json()}catch{}if(!res.ok)throw new Error(body.error||`Servidor de IA indisponível (${res.status}).`);renderResults(body.fields||body);showStatus('Análise concluída. Revise os campos antes de usar as informações em um processo real.','ok')}catch(e){console.error(e);showStatus('Não foi possível concluir a análise: '+e.message+' A conexão com a IA precisa estar publicada em um servidor seguro.','error');result.classList.remove('show')}finally{setLoading(false);analyze.disabled=!files.length}}
@@ -49,5 +49,5 @@ async function showSource(info){if(!info?.source?.file_index||!info?.source?.pag
 $('closeModal').onclick=()=>$('modal').classList.remove('show');$('modal').onclick=e=>{if(e.target===$('modal'))$('modal').classList.remove('show')};
 showStatus('Selecione os PDFs do processo. A chave de IA não fica exposta no navegador.','info');
 </script>
-<script type="module" src="./ai-auth-bridge.js?v=20260903a"></script>
+<script type="module" src="./ai-auth-bridge.js?v=20260903b"></script>
 </body></html>
