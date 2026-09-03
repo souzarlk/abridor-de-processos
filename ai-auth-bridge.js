@@ -16,11 +16,7 @@ if(window.__costalogAIBridgeInstalled){
 }else{
   window.__costalogAIBridgeInstalled=true;
 
-  const FUNCTION_URLS=[
-    'https://abridor-de-processos.web.app/api/extract-process',
-    'https://southamerica-east1-abridor-de-processos.cloudfunctions.net/extractProcess'
-  ];
-
+  const originalFetch=window.fetch.bind(window);
   const app=getApps().length?getApp():initializeApp(firebaseConfig);
   const auth=getAuth(app);
 
@@ -34,22 +30,41 @@ if(window.__costalogAIBridgeInstalled){
     });
   });
 
+  function makeFormData(source){
+    const fd=new FormData();
+    if(source instanceof FormData){
+      for(const [key,value] of source.entries()){
+        if(value instanceof File) fd.append(key,value,value.name);
+        else fd.append(key,value);
+      }
+    }
+    return fd;
+  }
+
+  async function request(url,formData,idToken){
+    const options={method:'POST',headers:{Authorization:`Bearer ${idToken}`},body:makeFormData(formData)};
+    return url==='/api/extract-process'?originalFetch(url,options):fetch(url,options);
+  }
+
   async function callExtractProcess(formData){
     const user=await authReady;
     if(!user){
       return new Response(JSON.stringify({error:'Sua sessão não está ativa. Volte para o início, faça login novamente e tente analisar o PDF.'}),{status:401,headers:{'Content-Type':'application/json'}});
     }
 
+    const idToken=await user.getIdToken();
+    const endpoints=[
+      '/api/extract-process',
+      'https://southamerica-east1-abridor-de-processos.cloudfunctions.net/extractProcess'
+    ];
     let lastError=null;
-    for(const url of FUNCTION_URLS){
+
+    for(const url of endpoints){
       try{
-        const idToken=await user.getIdToken();
-        const response=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${idToken}`},body:formData});
+        const response=await request(url,formData,idToken);
         const text=await response.text();
 
-        // 404/405/5xx no primeiro endereço: tenta o endereço direto da função.
-        // 200/400/401/403/429 são respostas reais da API e devem voltar para a página.
-        if(response.status!==404 && response.status!==405 && response.status<500){
+        if(response.ok || (response.status>=400 && response.status<500)){
           return new Response(text,{status:response.status,headers:{'Content-Type':response.headers.get('content-type')||'application/json'}});
         }
         lastError=new Error(`Endpoint ${url} respondeu HTTP ${response.status}`);
@@ -60,10 +75,9 @@ if(window.__costalogAIBridgeInstalled){
     }
 
     console.error('[Costalog] Todos os endpoints de IA falharam:',lastError);
-    return new Response(JSON.stringify({error:'Não foi possível conectar ao servidor de análise. A conexão com a IA está indisponível no momento. Tente novamente em alguns segundos.'}),{status:502,headers:{'Content-Type':'application/json'}});
+    return new Response(JSON.stringify({error:'Não foi possível conectar ao servidor de análise. O servidor da IA não respondeu. Tente novamente em alguns segundos.'}),{status:502,headers:{'Content-Type':'application/json'}});
   }
 
-  const originalFetch=window.fetch.bind(window);
   window.fetch=async(input,init={})=>{
     const url=typeof input==='string'?input:(input?.url||'');
     if(!url.includes('/api/extract-process'))return originalFetch(input,init);
