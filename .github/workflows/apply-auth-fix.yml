@@ -1,0 +1,32 @@
+name: Aplicar correção de autenticação
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inserir auth-fix.js no index
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          tag = '<script src="./auth-fix.js?v=20260903b"></script>'
+          if tag not in s:
+              s = s.replace('</body>', tag + '\n</body>')
+              p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commitar alteração
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "fix: ativar correção de login no index"
+          git push
