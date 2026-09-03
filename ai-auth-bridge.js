@@ -32,10 +32,10 @@ try{
 }
 
 const auth=getAuth(app);
-// O Firebase AI Logic gerencia o App Check automaticamente. Com
-// useLimitedUseAppCheckTokens=true, o SDK gera o token apropriado para cada chamada.
-// Não chamamos getToken() manualmente, pois isso pode disparar appCheck/throttled.
-const ai=getAI(app,{backend:new GoogleAIBackend(),useLimitedUseAppCheckTokens:true});
+// O Firebase AI Logic gerencia o App Check automaticamente.
+// Usamos o token padrão para evitar o fluxo de tokens de uso limitado,
+// que pode entrar em throttling durante a inicialização.
+const ai=getAI(app,{backend:new GoogleAIBackend(),useLimitedUseAppCheckTokens:false});
 
 const FIELD_KEYS=['process_number','client','document_type','transport_operation','terminal_service','release_billing_date','closing_date','client_reference','document_number','reservation_number','product','chemical_product','shipper','pickup_location','shipping_agency','customs_broker','broker_reference','bl_awb','consignee','delivery_location','ship','voyage_number','origin_port','maritime_operation','pickup_deadline','delivery_deadline','storage_deadline','demurrage_date','containerized_cargo','container_model','empty_return_deadline','empty_container_terminal','loading_quantity','process_billed','billing_started','estimated_billing_value','estimated_payment_value','checklist','observation','show_turns','route','storage_location','generate_empty_turn','generate_full_turn'];
 const JSON_TEMPLATE=FIELD_KEYS.reduce((o,k)=>{o[k]={value:null,confidence:0,source:null,warning:null};return o},{});
