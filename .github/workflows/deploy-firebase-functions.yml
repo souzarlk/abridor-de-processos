@@ -37,5 +37,5 @@ jobs:
       - name: Instalar Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Publicar função extractProcess
-        run: firebase deploy --only functions:extractProcess --project abridor-de-processos --non-interactive
+      - name: Publicar Cloud Function e Firebase Hosting
+        run: firebase deploy --only functions:extractProcess,hosting --project abridor-de-processos --non-interactive
