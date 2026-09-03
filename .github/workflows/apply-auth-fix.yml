@@ -1,4 +1,4 @@
-name: Aplicar correção de autenticação
+name: Aplicar correções do site
 on:
   push:
     branches: [main]
@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Centralizar autenticação no módulo auth-fix
         shell: bash
         run: |
@@ -18,28 +19,38 @@ jobs:
 
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-
-          # Remove o módulo Firebase inline antigo para evitar dois listeners de login.
-          s = re.sub(
-              r'<script type="module">\s*import \{ initializeApp \}.*?</script>',
-              '',
-              s,
-              flags=re.S
-          )
-
+          s = re.sub(r'<script type="module">\s*import \{ initializeApp \}.*?</script>', '', s, flags=re.S)
           tag = '<script type="module" src="./auth-fix.js?v=20260903c"></script>'
           s = re.sub(r'<script type="module" src="\./auth-fix\.js\?v=[^"]+"></script>\s*', '', s)
           if tag not in s:
               s = s.replace('</body>', tag + '\n</body>')
-
           p.write_text(s, encoding='utf-8')
           PY
-      - name: Commitar alteração
+
+      - name: Ativar leitura local de processos sem IA externa
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('abrir-processo.html')
+          s = p.read_text(encoding='utf-8')
+          s = re.sub(r'<script type="module" src="\./ai-auth-bridge\.js\?v=[^"]+"></script>\s*', '', s)
+          s = re.sub(r'<script type="module" src="\./ai-auth-bridge\.js"></script>\s*', '', s)
+          s = re.sub(r'<script type="module" src="\./local-process-parser\.js\?v=[^"]+"></script>\s*', '', s)
+          tag = '<script type="module" src="./local-process-parser.js?v=20260903d"></script>'
+          if tag not in s:
+              s = s.replace('</body>', tag + '\n</body>')
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commitar alterações
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          git add index.html abrir-processo.html local-process-parser.js .github/workflows/apply-auth-fix.yml
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "fix: centralizar fluxo de login Firebase"
+          git commit -m "feat: remover dependencia de IA externa na leitura de processos"
           git push
