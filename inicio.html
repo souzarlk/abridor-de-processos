@@ -32,7 +32,7 @@
   <div class="nav-title">Menu principal</div>
   <nav class="nav">
     <a class="active" href="inicio.html"><span class="ico">⌂</span>Início</a>
-    <a href="#novo"><span class="ico">＋</span>Abrir processo</a>
+    <a href="abrir-processo.html"><span class="ico">＋</span>Abrir processo</a>
     <a href="#processos"><span class="ico">▣</span>Processos</a>
     <a href="#pendencias"><span class="ico">◷</span>Pendências</a>
   </nav>
@@ -51,7 +51,7 @@
   <div class="content">
     <section class="hero">
       <div><h1 id="welcome">Olá!</h1><p>Bem-vindo ao seu ambiente de trabalho. Acesse rapidamente as principais funções do Abridor de Processos.</p></div>
-      <button class="hero-btn" onclick="document.getElementById('novo').scrollIntoView({behavior:'smooth'})">＋ Abrir novo processo</button>
+      <button class="hero-btn" onclick="location.href='abrir-processo.html'">＋ Abrir novo processo</button>
     </section>
     <div class="section-head"><h2>Visão geral</h2><span>Resumo do sistema</span></div>
     <section class="cards">
@@ -65,7 +65,7 @@
       <div class="panel">
         <div class="panel-head"><h3>Atalhos do sistema</h3><a href="#">Ver todos</a></div>
         <div class="quick">
-          <a href="#novo"><div class="qicon">📂</div><strong>Abrir novo processo</strong><span>Inicie um novo processo operacional.</span></a>
+          <a href="abrir-processo.html"><div class="qicon">📂</div><strong>Abrir novo processo</strong><span>Inicie um novo processo operacional.</span></a>
           <a href="#processos"><div class="qicon">🔎</div><strong>Consultar processos</strong><span>Pesquise e acompanhe seus processos.</span></a>
           <a href="#pendencias"><div class="qicon">⏱</div><strong>Ver pendências</strong><span>Confira tarefas que precisam de atenção.</span></a>
           <a href="#relatorios"><div class="qicon">📊</div><strong>Relatórios</strong><span>Visualize informações e indicadores.</span></a>
@@ -73,7 +73,7 @@
       </div>
       <div class="panel" id="processos">
         <div class="panel-head"><h3>Processos recentes</h3><a href="#processos">Ver todos</a></div>
-        <div class="empty"><div class="empty-icon">▤</div><strong>Nenhum processo recente</strong><p>Quando você abrir processos, eles aparecerão aqui para acesso rápido.</p><button class="outline-btn" onclick="document.getElementById('novo').scrollIntoView({behavior:'smooth'})">Abrir primeiro processo</button></div>
+        <div class="empty"><div class="empty-icon">▤</div><strong>Nenhum processo recente</strong><p>Quando você abrir processos, eles aparecerão aqui para acesso rápido.</p><button class="outline-btn" onclick="location.href='abrir-processo.html'">Abrir primeiro processo</button></div>
       </div>
     </section>
     <div class="notice" id="pendencias"><div class="notice-icon">!</div><div><strong>Área pronta para expansão</strong><p>Esta primeira versão da Home está preparada para receber os módulos de processos, usuários, indicadores e relatórios.</p></div></div>
